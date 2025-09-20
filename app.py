@@ -27,20 +27,20 @@ def get_teams():
         pass  # Fallback to default if file is missing or corrupt
     return ["Alpha", "Bravo", "Charlie", "Delta"]
 
-def init_db():
-    """Initializes the database and scores table."""
-    try:
-        conn = sqlite3.connect(DB_PATH)
-        c = conn.cursor()
-        c.execute('CREATE TABLE IF NOT EXISTS scores (team TEXT PRIMARY KEY, score INTEGER NOT NULL DEFAULT 0)')
-        teams = get_teams()
-        for team in teams:
-            c.execute('INSERT OR IGNORE INTO scores (team, score) VALUES (?, 0)', (team,))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Error initializing database: {e}")
-        traceback.print_exc()
+# def init_db():
+#     """Initializes the database and scores table."""
+#     try:
+#         conn = sqlite3.connect(DB_PATH)
+#         c = conn.cursor()
+#         c.execute('CREATE TABLE IF NOT EXISTS scores (team TEXT PRIMARY KEY, score INTEGER NOT NULL DEFAULT 0)')
+#         teams = get_teams()
+#         for team in teams:
+#             c.execute('INSERT OR IGNORE INTO scores (team, score) VALUES (?, 0)', (team,))
+#         conn.commit()
+#         conn.close()
+#     except Exception as e:
+#         print(f"Error initializing database: {e}")
+#         traceback.print_exc()
 
 # --- API Endpoints ---
 @app.route('/api/questions')
@@ -191,7 +191,8 @@ if __name__ == '__main__':
     import os
     print(f"[DEBUG] Current working directory: {os.getcwd()}")
     print(f"[DEBUG] Flask template folder: {app.template_folder}")
-    init_db()  # Initialize DB on startup
+    # init_db()  # Initialize DB on startup
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', '5000'))
     app.run(host=host, port=port, debug=True)
+
