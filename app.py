@@ -10,9 +10,14 @@ app = Flask(__name__)
 app.secret_key = os.environ.get('SECRET_KEY', 'your_very_secret_key')
 DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'scores.db'))
 
-# Enable debug mode and logging
-app.debug = True
-app.logger.setLevel('DEBUG')
+# Disable debug mode in production
+app.debug = os.environ.get('FLASK_DEBUG') == '1'
+if not app.debug:
+    import logging
+    from logging import StreamHandler
+    handler = StreamHandler()
+    handler.setLevel(logging.INFO)
+    app.logger.addHandler(handler)
 
 # --- Helper Functions ---
 def get_teams():
@@ -27,20 +32,22 @@ def get_teams():
         pass  # Fallback to default if file is missing or corrupt
     return ["Alpha", "Bravo", "Charlie", "Delta"]
 
-# def init_db():
-#     """Initializes the database and scores table."""
-#     try:
-#         conn = sqlite3.connect(DB_PATH)
-#         c = conn.cursor()
-#         c.execute('CREATE TABLE IF NOT EXISTS scores (team TEXT PRIMARY KEY, score INTEGER NOT NULL DEFAULT 0)')
-#         teams = get_teams()
-#         for team in teams:
-#             c.execute('INSERT OR IGNORE INTO scores (team, score) VALUES (?, 0)', (team,))
-#         conn.commit()
-#         conn.close()
-#     except Exception as e:
-#         print(f"Error initializing database: {e}")
-#         traceback.print_exc()
+def init_db():
+    """Initializes the database and scores table."""
+    try:
+        app.logger.info("Initializing database...")
+        conn = sqlite3.connect(DB_PATH)
+        c = conn.cursor()
+        c.execute('CREATE TABLE IF NOT EXISTS scores (team TEXT PRIMARY KEY, score INTEGER NOT NULL DEFAULT 0)')
+        teams = get_teams()
+        for team in teams:
+            c.execute('INSERT OR IGNORE INTO scores (team, score) VALUES (?, 0)', (team,))
+        conn.commit()
+        conn.close()
+        app.logger.info("Database initialized successfully.")
+    except Exception as e:
+        app.logger.error(f"Error initializing database: {e}")
+        traceback.print_exc()
 
 # --- API Endpoints ---
 @app.route('/api/questions')
@@ -152,9 +159,6 @@ def api_rounds():
     except (FileNotFoundError, json.JSONDecodeError):
         return jsonify([])
 
-@app.route('/api/rounds')
-    # ...existing code...
-
 # --- HTML Routes ---
 @app.route('/')
 def index():
@@ -188,11 +192,11 @@ def debug_questions():
 
 # --- Main Execution ---
 if __name__ == '__main__':
-    import os
-    print(f"[DEBUG] Current working directory: {os.getcwd()}")
-    print(f"[DEBUG] Flask template folder: {app.template_folder}")
-    # init_db()  # Initialize DB on startup
+    init_db()
+    # Use gunicorn for production, which is specified in the Procfile
+    # The app.run() below is for local development only.
+    # When deploying to Render, the Procfile's command `gunicorn app:app` will be used.
     host = os.environ.get('HOST', '0.0.0.0')
     port = int(os.environ.get('PORT', '5000'))
+    # For local testing, you can still run this file directly
     app.run(host=host, port=port, debug=True)
-
