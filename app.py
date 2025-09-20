@@ -6,9 +6,12 @@ from flask import Flask, render_template, request, jsonify
 
 # --- App Setup ---
 app = Flask(__name__)
+# Define base directory
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, 'scores.db')
+
 # Allow configuring secret key and DB path via environment variables
 app.secret_key = os.environ.get('SECRET_KEY', 'your_very_secret_key')
-DB_PATH = os.environ.get('DB_PATH', os.path.join(os.path.dirname(__file__), 'scores.db'))
 
 # Disable debug mode in production
 app.debug = os.environ.get('FLASK_DEBUG') == '1'
@@ -23,7 +26,8 @@ if not app.debug:
 def get_teams():
     """Loads team names from questions.json, with a fallback to default teams."""
     try:
-        with open('questions.json', 'r', encoding='utf-8') as f:
+        questions_path = os.path.join(BASE_DIR, 'questions.json')
+        with open(questions_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
             teams = data.get('teams', [])
             if teams:
@@ -54,16 +58,17 @@ def init_db():
 def get_questions():
     """Serve the questions data from questions.json file."""
     try:
-        print("Reading questions.json...")  # Debug log
-        with open('questions.json', 'r', encoding='utf-8') as f:
+        app.logger.info("Reading questions.json...")
+        questions_path = os.path.join(BASE_DIR, 'questions.json')
+        with open(questions_path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            print(f"Successfully read questions.json. Found {len(data.get('rounds', []))} rounds")  # Debug log
+            app.logger.info(f"Successfully read questions.json. Found {len(data.get('rounds', []))} rounds")
             return jsonify(data)
     except FileNotFoundError as e:
-        print(f"Error: questions.json not found: {e}")  # Debug log
+        app.logger.error(f"Error: questions.json not found: {e}")
         return jsonify({"error": "Questions file not found"}), 404
     except json.JSONDecodeError as e:
-        print(f"Error: Invalid JSON in questions.json: {e}")  # Debug log
+        app.logger.error(f"Error: Invalid JSON in questions.json: {e}")
         return jsonify({"error": "Invalid JSON file"}), 500
 
 @app.route('/api/scores', methods=['GET', 'POST'])
