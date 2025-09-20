@@ -5,9 +5,12 @@ import traceback
 from flask import Flask, render_template, request, jsonify
 
 # --- App Setup ---
-app = Flask(__name__)
 # Define base directory
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+STATIC_DIR = os.path.join(BASE_DIR, 'static')
+
+app = Flask(__name__, template_folder=TEMPLATE_DIR, static_folder=STATIC_DIR)
 DB_PATH = os.path.join(BASE_DIR, 'scores.db')
 
 # Allow configuring secret key and DB path via environment variables
